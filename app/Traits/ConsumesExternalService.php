@@ -6,19 +6,28 @@ use GuzzleHttp\Client;
 
 trait ConsumesExternalService
 {
-    public function performRequest($method, $requestUrl, $form_params = [], $headers = [])
+
+    public function performRequest($method, $requestUrl, $formParams = [], $headers = [])
     {
-        $client = new Client([
-            'base_uri' => $this->baseUri,
-        ]);
-
-
-        if (isset($this->secret)) {
-            $headers['Authorization'] = $this->secret;
+        try {
+            $client = new Client(['base_uri' => $this->baseUri]);
+    
+            if (isset($headers['Authorization'])) {
+                $headers['Authorization'] = 'Bearer ' . $headers['Authorization'];
+            }
+    
+            $response = $client->request($method, $requestUrl, [
+                'json' => $formParams,
+                'headers' => $headers,
+            ]);
+    
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            return response()->json([
+                'error' => 'Request failed',
+                'message' => $e->getMessage()
+            ], 500);
         }
-        
-        $response = $client->request($method, $requestUrl, ['form_params' => $form_params, 'headers' => $headers]);
-
-        return $response->getBody()->getContents();
     }
+    
 }
